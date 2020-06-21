@@ -49,58 +49,76 @@ struct Node {
   int val; //kindがND_NUMときの値
 };
 
-Node *expr(void);
-Node *mul(void);
-Node *primary(void);
+static Node *expr(void);
+static Node *mul(void);
+static Node *primary(void);
+static Node *unary(void);
 
 // Input program
 char *user_input;
 
 
 
-Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
+Node *new_node(NodeKind kind) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = kind;
+  return node;
+}
+
+Node *new_binary(NodeKind kind, Node *lhs, Node *rhs) {
+  Node *node = new_node(kind);
   node->lhs = lhs;
   node->rhs = rhs;
   return node;
 }
-
-Node *new_node_num(int val) {
-  Node *node = calloc(1, sizeof(Node));
-  node->kind = ND_NUM;
+Node *new_num(int val) {
+  Node *node = new_node(ND_NUM);
   node->val = val;
   return node;
 }
 
+// Node *new_node_num(int val) {
+//   Node *node = calloc(1, sizeof(Node));
+//   node->kind = ND_NUM;
+//   node->val = val;
+//   return node;
+// }
 
 
-Node *expr() {
+
+static Node *expr() {
   Node *node = mul();
 
   for(;;) {
     if (consume('+'))
-      node = new_node(ND_ADD, node, mul());
+      node = new_binary(ND_ADD, node, mul());
     else if (consume('-'))
-      node = new_node(ND_SUB, node, mul());
+      node = new_binary(ND_SUB, node, mul());
     else
       return node;
   }
 }
-Node *mul() {
-  Node *node = primary();
+// mul = unary("*"unary | "/" unary)*
+static Node *mul() {
+  Node *node = unary();
 
   for(;;) {
     if (consume('*'))
-      node = new_node(ND_MUL, node, primary());
+      node = new_binary(ND_MUL, node, unary());
     else if (consume('/'))
-      node = new_node(ND_DIV, node, primary());
+      node = new_binary(ND_DIV, node, unary());
     else
       return node;
   }
 }
-
-Node *primary() {
+static Node *unary(void) {
+  if (consume('+'))
+    return unary();
+  if (consume('-'))
+    return new_binary(ND_SUB, new_num(0), unary());
+  return primary();
+}
+static Node *primary() {
   // 次のトークンが"("なら、"(" expr ")"のはず
   if (consume('(')) {
     Node *node = expr();
@@ -109,7 +127,7 @@ Node *primary() {
   }
 
   // そうでなければ数値のはず
-  return new_node_num(expect_number());
+  return new_num(expect_number());
 }
 
 // エラーを報告するための関数
@@ -190,6 +208,7 @@ Token *tokenize(void) {
       continue;
     }
 
+    // ispunct->記号かどうかを判定する関数
     if (ispunct(*p)) {
       cur = new_token(TK_RESERVED, cur, p);
       p++;
