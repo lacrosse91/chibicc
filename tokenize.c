@@ -97,6 +97,7 @@ Token *tokenize(void) {
       continue;
     }
 
+
     // Integer literal
     if (isdigit(*p)) {
       cur = new_token(TK_NUM, cur, p, 0);
