@@ -49,8 +49,19 @@ assert 0 'return 1>=2;'
 assert 1 'return 1; 2; 3;'
 assert 2 '1; return 2; 3;'
 assert 3 '1; 2; return 3;'
+assert 4 ' 1 + 2  + (1);'
 
 assert 3 'a=3; return a;'
 assert 8 'a=3; z=5; return a+z;'
+
+assert 5 '2 * 3 - 1;'
+
+assert 14 'a = 3; b = 5 *6 -8; a + b/2;'
+assert 1 'return a = 1;'
+
+assert 3 'foo=3; return foo;'
+assert 8 'foo123=3; bar=5; return foo123+bar;'
+
+
 
 echo OK

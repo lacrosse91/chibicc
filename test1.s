@@ -1,46 +1,13 @@
-	.file	"test1.c"
-	.section	.rodata
-.LC0:
-	.string	"-----------"
-.LC1:
-	.string	"sample is %c\n"
-.LC2:
-	.string	"dig is %d\n"
-	.text
-	.globl	main
-	.type	main, @function
+.intel_syntax noprefix
+.globl plus, main
+
+plus:
+        add rsi, rdi
+        mov rax, rsi
+        ret
+
 main:
-.LFB0:
-	.cfi_startproc
-	pushq	%rbp
-	.cfi_def_cfa_offset 16
-	.cfi_offset 6, -16
-	movq	%rsp, %rbp
-	.cfi_def_cfa_register 6
-	subq	$16, %rsp
-	movl	$.LC0, %edi
-	call	puts
-	movb	$100, -6(%rbp)
-	movsbl	-6(%rbp), %eax
-	movl	%eax, %esi
-	movl	$.LC1, %edi
-	movl	$0, %eax
-	call	printf
-	movb	$52, -5(%rbp)
-	movsbl	-5(%rbp), %eax
-	subl	$48, %eax
-	movl	%eax, -4(%rbp)
-	movl	-4(%rbp), %eax
-	movl	%eax, %esi
-	movl	$.LC2, %edi
-	movl	$0, %eax
-	call	printf
-	movl	$42, %eax
-	leave
-	.cfi_def_cfa 7, 8
-	ret
-	.cfi_endproc
-.LFE0:
-	.size	main, .-main
-	.ident	"GCC: (Ubuntu 5.4.0-6ubuntu1~16.04.12) 5.4.0 20160609"
-	.section	.note.GNU-stack,"",@progbits
+        mov rdi, 3
+        mov rsi, 4
+        call plus
+        ret
