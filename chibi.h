@@ -66,6 +66,7 @@ typedef enum {
   ND_ASSIGN,    // =
   ND_RETURN, // "return"
   ND_BLOCK,     // { ... }
+  ND_FUNCALL,  // func call
   ND_EXPR_STMT, // Expression statement
   ND_WHILE,     // "while"
   ND_FOR,       // "for"
@@ -89,6 +90,10 @@ struct Node {
 
   // Block
   Node *body;
+
+  // Function call
+  char *funcname;
+  Node *args;
 
   Var *var;     // Used if kind == ND_VAR now only alphabet
   long val;      // Used if kind == ND_NUM
