@@ -65,8 +65,10 @@ typedef enum {
   ND_IF,        // "if"
   ND_ASSIGN,    // =
   ND_RETURN, // "return"
+  ND_BLOCK,     // { ... }
   ND_EXPR_STMT, // Expression statement
   ND_WHILE,     // "while"
+  ND_FOR,       // "for"
   ND_VAR,       // Variable
   ND_NUM,    // Integer
 } NodeKind;
@@ -78,10 +80,16 @@ struct Node {
   Node *lhs;     // Left-hand side
   Node *next;
   Node *rhs;     // Right-hand side
-  // "if"  or while statement
+  // "if"  or while or for statement
   Node *cond;
   Node *then;
   Node *els;
+  Node *init;
+  Node *inc;
+
+  // Block
+  Node *body;
+
   Var *var;     // Used if kind == ND_VAR now only alphabet
   long val;      // Used if kind == ND_NUM
 };
