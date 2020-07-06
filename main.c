@@ -23,11 +23,28 @@ struct Token {
 // current token
 Token *token;
 
+// Input program
+char *user_input;
+
 
 // Reports an error and exit.
 void error(char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
+  vfprintf(stderr, fmt, ap);
+  fprintf(stderr, "\n");
+  exit(1);
+}
+
+// Reports an error location and exit.
+void error_at(char *loc, char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+
+  int pos = loc - user_input;
+  fprintf(stderr, "%s\n", user_input);
+  fprintf(stderr, "%*s", pos, ""); // print pos spaces.
+  fprintf(stderr, "^ ");
   vfprintf(stderr, fmt, ap);
   fprintf(stderr, "\n");
   exit(1);
@@ -49,7 +66,7 @@ bool consume(char op) {
 // 記号ならトークンを一つ進める。それ以外はエラーを返す
 void expect(char op) {
   if (token->kind != TK_RESERVED || token->str[0] != op) {
-      error("expected %c", op);
+      error_at(token->str, "expected %c", op);
   }
   forward_token();
 }
@@ -57,7 +74,7 @@ void expect(char op) {
 // 現在のトークンが数値ならば数値を返し。それ以外ならエラー
 long expect_number(void) {
     if (token->kind != TK_NUM)
-        error("expected number, but %c", token->str[0]);
+        error_at(token->str, "expected number, but %c", token->str[0]);
     long val = token->val;
     forward_token();
     return val;
@@ -77,7 +94,8 @@ Token *new_token(TokenKind kind, Token *cur, char *str) {
   return tok;
 }
 
-Token *tokenize(char *p) {
+Token *tokenize(void) {
+    char *p = user_input;
 
     Token head = {};
     Token *cur;
@@ -122,6 +140,8 @@ void codegen() {
           continue;
       }
 
+
+      // +ではないなら-のはず
       expect('-');
       printf("  sub rax, %ld\n", expect_number());
   }
@@ -134,7 +154,8 @@ int main(int argc, char **argv) {
   if (argc != 2)
     error("%s: invalid number of arguments", argv[0]);
 
-  token = tokenize(argv[1]);
+  user_input = argv[1];
+  token = tokenize();
 
   codegen();
   return 0;
