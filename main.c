@@ -169,8 +169,9 @@ static Node *new_num(int val) {
 
 static Node *expr(void);
 static Node *mul(void);
+static Node *primary(void);
 
-// expr = mul ("+" mul | "-" mul)
+// expr = mul ("+" mul | "-" mul)*
 static Node *expr(void) {
     Node *node = mul();
 
@@ -184,18 +185,28 @@ static Node *expr(void) {
     }
 }
 
-// mul = num ( "*" num | "/" num);
+// mul = primary ( "*" primary | "/" primary)*;
 static Node *mul(void) {
-    Node *node = new_num(expect_number());
+    Node *node = primary();
 
     for (;;) {
         if (consume('*'))
-            node = new_binary(ND_MUL, node, mul());
+            node = new_binary(ND_MUL, node, primary());
         else if (consume('/'))
-            node = new_binary(ND_DIV, node, mul());
+            node = new_binary(ND_DIV, node, primary());
         else
             return node;
     }
+}
+
+// primary = "(" expr ")" | num
+static Node *primary(void) {
+    if (consume('(')) {
+        Node *node = expr();
+        expect(')');
+        return node;
+    }
+    return new_num(expect_number());
 }
 
 // ASTを解析してアセンブリを吐く関数
