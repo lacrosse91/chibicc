@@ -33,7 +33,42 @@ void error(char *fmt, ...) {
   exit(1);
 }
 
-// // Create a new token and add it as the next token of `cur`.
+// 次のトークンに進める関数
+void forward_token() {
+    token = token->next;
+}
+
+// 記号ならtrue,それ以外はfalseでtokenを一つ進める
+bool consume(char op) {
+  if (token->kind != TK_RESERVED || token->str[0] != op)
+    return false;
+  forward_token();
+  return true;
+}
+
+// 記号ならトークンを一つ進める。それ以外はエラーを返す
+void expect(char op) {
+  if (token->kind != TK_RESERVED || token->str[0] != op) {
+      error("expected %c", op);
+  }
+  forward_token();
+}
+
+// 現在のトークンが数値ならば数値を返し。それ以外ならエラー
+long expect_number(void) {
+    if (token->kind != TK_NUM)
+        error("expected number, but %c", token->str[0]);
+    long val = token->val;
+    forward_token();
+    return val;
+}
+
+// 文の終わり（EOFかどうか）を判定する関数
+bool is_eof(void) {
+    return  token->kind == TK_EOF;
+}
+
+// Create a new token and add it as the next token of `cur`.
 Token *new_token(TokenKind kind, Token *cur, char *str) {
   Token *tok = calloc(1, sizeof(Token));
   tok->kind = kind;
@@ -42,27 +77,53 @@ Token *new_token(TokenKind kind, Token *cur, char *str) {
   return tok;
 }
 
-void codegen(char *p) {
+Token *tokenize(char *p) {
+
+    Token head = {};
+    Token *cur;
+    cur = &head;
+    head.next = NULL;
+
+    while(*p) {
+
+        // 空白なら飛ばす
+        if(isspace(*p)) {
+            p++;
+            continue;
+        }
+
+        if (isdigit(*p)) {
+            cur = new_token(TK_NUM, cur, p);
+            cur->val = strtol(p, &p, 10);
+            continue;
+        }
+
+        if (*p == '+' || *p == '-') {
+            cur = new_token(TK_RESERVED, cur, p++);
+            continue;
+        }
+
+    }
+    cur = new_token(TK_EOF, cur, p);
+
+    return head.next;
+}
+void codegen() {
   printf(".intel_syntax noprefix\n");
   printf(".global main\n");
   printf("main:\n");
-  printf("  mov rax, %ld\n", strtol(p, &p, 10));
 
-  while (*p) {
-    if (*p == '+') {
-      p++;
-      printf("  add rax, %ld\n", strtol(p, &p, 10));
-      continue;
-    }
+  // 最初のトークンは数値
+  printf("  mov rax, %ld\n", expect_number());
 
-    if (*p == '-') {
-      p++;
-      printf("  sub rax, %ld\n", strtol(p, &p, 10));
-      continue;
-    }
+  while(!is_eof()) {
+      if (consume('+')) {
+          printf("  add rax, %ld\n", expect_number());
+          continue;
+      }
 
-    fprintf(stderr, "unexpected character: '%c'\n", *p);
-    return 1;
+      expect('-');
+      printf("  sub rax, %ld\n", expect_number());
   }
 
   printf("  ret\n");
@@ -70,13 +131,11 @@ void codegen(char *p) {
 }
 
 int main(int argc, char **argv) {
-  if (argc != 2) {
-    fprintf(stderr, "%s: invalid number of arguments\n", argv[0]);
-    return 1;
-  }
+  if (argc != 2)
+    error("%s: invalid number of arguments", argv[0]);
 
-  char *p = argv[1];
+  token = tokenize(argv[1]);
 
-  codegen(p);
+  codegen();
   return 0;
 }
