@@ -1,5 +1,27 @@
+#include <ctype.h>
+#include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+typedef enum {
+    TK_RESERVED, //operator
+    TK_NUM, // integer
+    TK_EOF, // EOF
+} TokenKind;
+
+typedef struct Token Token;
+
+struct {
+    TokenKind kind; // token
+    char *p; // token's character
+    Token *next; // next token
+    int val; // if TokenKind == TK_NUM, its value.
+};
+
+// current token
+Token *token;
 
 int main(int argc, char **argv) {
   if (argc != 2) {
