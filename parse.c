@@ -47,7 +47,7 @@ Node *program(void) {
     return head.next;
 }
 
-//stmt = expr ";" | "return" expr ";"
+//stmt = "return" expr ";" | expr ";"
 static Node *stmt(void) {
     if (consume("return")) {
         Node *node = expr();
@@ -55,7 +55,7 @@ static Node *stmt(void) {
         node = new_unary(ND_RETURN, node);
         return node;
     }
-    Node *node = expr();
+    Node *node = new_unary(ND_EXPR_STMT, expr());
     expect(";");
     return node;
 }

@@ -10,6 +10,11 @@ static void gen(Node *node) {
     printf("  pop rax\n");
     printf("  ret\n");
     return;
+  case ND_EXPR_STMT:
+    gen(node->lhs);
+    // スタックに積んであるraxの値を無効にする
+    printf("  add rsp, 8\n");
+    return;
   }
 
   gen(node->lhs);
@@ -62,10 +67,7 @@ void codegen(Node *node) {
   printf(".global main\n");
   printf("main:\n");
 
-  for(Node *n = node; n; n = n->next) {
+  for(Node *n = node; n; n = n->next)
       gen(n);
-      printf("  pop rax\n");
-  }
 
-  printf("  ret\n");
 }
