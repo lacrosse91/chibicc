@@ -51,6 +51,7 @@ static Var *new_lvar(char *name) {
     return var;
 }
 
+
 static Node *stmt(void);
 static Node *expr(void);
 static Node *assign(void);
@@ -78,7 +79,13 @@ Function *program(void) {
     return prog;
 }
 
-//stmt = "return" expr ";" | expr ";"
+static Node *read_expr_stmt(void) {
+  return new_unary(ND_EXPR_STMT, expr());
+}
+
+//stmt = "return" expr ";"
+//       | if "(" expr ")" stmt ("else" stmt)?
+//       | expr ";"
 static Node *stmt(void) {
     if (consume("return")) {
         Node *node = expr();
@@ -86,7 +93,19 @@ static Node *stmt(void) {
         node = new_unary(ND_RETURN, node);
         return node;
     }
-    Node *node = new_unary(ND_EXPR_STMT, expr());
+
+    if (consume("if")) {
+        Node *node = new_node(ND_IF);
+        expect("(");
+        node->cond = expr();
+        expect(")");
+        node->then = stmt();
+        if (consume("else"))
+            node->els = stmt();
+        return node;
+    }
+
+    Node *node = read_expr_stmt();
     expect(";");
     return node;
 }
