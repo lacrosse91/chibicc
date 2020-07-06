@@ -23,6 +23,7 @@ struct {
 // current token
 Token *token;
 
+
 // Reports an error and exit.
 void error(char *fmt, ...) {
   va_list ap;
@@ -32,14 +33,7 @@ void error(char *fmt, ...) {
   exit(1);
 }
 
-int main(int argc, char **argv) {
-  if (argc != 2) {
-    fprintf(stderr, "%s: invalid number of arguments\n", argv[0]);
-    return 1;
-  }
-
-  char *p = argv[1];
-
+void codegen(char *p) {
   printf(".intel_syntax noprefix\n");
   printf(".global main\n");
   printf("main:\n");
@@ -63,5 +57,17 @@ int main(int argc, char **argv) {
   }
 
   printf("  ret\n");
+
+}
+
+int main(int argc, char **argv) {
+  if (argc != 2) {
+    fprintf(stderr, "%s: invalid number of arguments\n", argv[0]);
+    return 1;
+  }
+
+  char *p = argv[1];
+
+  codegen(p);
   return 0;
 }
