@@ -126,25 +126,109 @@ Token *tokenize(void) {
 
     return head.next;
 }
+
+//
+// Parser
+//
+
+typedef enum {
+  ND_ADD, // +
+  ND_SUB, // -
+  ND_NUM, // Integer
+} NodeKind;
+
+// AST node type
+typedef struct Node Node;
+struct Node {
+  NodeKind kind; // Node kind
+  Node *lhs;     // Left-hand side
+  Node *rhs;     // Right-hand side
+  long val;      // Used if kind == ND_NUM
+};
+
+static Node *new_node(NodeKind kind) {
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = kind;
+  return node;
+}
+
+static Node *new_binary(NodeKind kind, Node *lhs, Node *rhs) {
+  Node *node = new_node(kind);
+  node->lhs = lhs;
+  node->rhs = rhs;
+  return node;
+}
+
+static Node *new_num(int val) {
+  Node *node = new_node(ND_NUM);
+  node->val = val;
+  return node;
+}
+
+static Node *expr(void);
+static Node *mul(void);
+
+// expr = mul ("+" mul | "-" mul)
+static Node *expr(void) {
+    Node *node = mul();
+
+    for (;;) {
+        if (consume('+'))
+            node = new_binary(ND_ADD, node, mul());
+        else if (consume('-'))
+            node = new_binary(ND_SUB, node, mul());
+        else
+            return node;
+    }
+}
+
+// mul = num
+static Node *mul(void) {
+    return new_num(expect_number());
+}
+
+// ASTを解析してアセンブリを吐く関数
+void gen(Node *node) {
+    if (node->kind == ND_NUM) {
+        printf("  push %ld\n", node->val);
+        return;
+    }
+
+    gen(node->lhs);
+    gen(node->rhs);
+
+    // rdiとraxにpop rdiにrhsがraxにlhsが入る
+    printf("  pop rdi\n");
+    printf("  pop rax \n");
+
+    switch(node->kind) {
+    case ND_ADD:
+        printf("  add rax, rdi\n");
+        break;
+    case ND_SUB:
+        printf("  sub rax, rdi\n");
+        break;
+    }
+
+    // スタックにプッシュ
+    printf("  push rax\n");
+
+}
 void codegen() {
   printf(".intel_syntax noprefix\n");
   printf(".global main\n");
   printf("main:\n");
 
-  // 最初のトークンは数値
-  printf("  mov rax, %ld\n", expect_number());
+  // astを作成
+  Node *node = expr();
 
-  while(!is_eof()) {
-      if (consume('+')) {
-          printf("  add rax, %ld\n", expect_number());
-          continue;
-      }
+  gen(node);
 
 
-      // +ではないなら-のはず
-      expect('-');
-      printf("  sub rax, %ld\n", expect_number());
-  }
+
+  // スタックに結果が残ってるのでpop
+  printf("  pop rax\n");
+
 
   printf("  ret\n");
 
