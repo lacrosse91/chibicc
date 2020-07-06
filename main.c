@@ -97,6 +97,10 @@ Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
   return tok;
 }
 
+static bool startswith(char *p, char *q) {
+  return strncmp(p, q, strlen(q)) == 0;
+}
+
 Token *tokenize(void) {
     char *p = user_input;
 
@@ -110,6 +114,14 @@ Token *tokenize(void) {
         // 空白なら飛ばす
         if(isspace(*p)) {
             p++;
+            continue;
+        }
+
+        // Multi-letter punctuators
+        if (startswith(p, "==") || startswith(p, "!=") ||
+            startswith(p, "<=") || startswith(p, ">=")) {
+            cur = new_token(TK_RESERVED, cur, p, 2);
+            p += 2;
             continue;
         }
 
@@ -142,6 +154,10 @@ typedef enum {
   ND_SUB, // -
   ND_MUL, // *
   ND_DIV, // /
+  ND_EQ, // ==
+  ND_NE, // !=
+  ND_LT, // <
+  ND_LE, // <=
   ND_NUM, // Integer
 } NodeKind;
 
@@ -174,12 +190,54 @@ static Node *new_num(int val) {
 }
 
 static Node *expr(void);
+static Node *equality(void);
+static Node *relational(void);
+static Node *add(void);
 static Node *mul(void);
 static Node *unary(void);
 static Node *primary(void);
 
-// expr = mul ("+" mul | "-" mul)*
+// expr = equality
 static Node *expr(void) {
+    return equality();
+}
+
+// equality = relational ("==" relational | "!=" relational)*
+static Node *equality(void) {
+    Node *node = relational();
+
+    for(;;) {
+        if (consume("=="))
+            node = new_binary(ND_EQ, node, relational());
+        else if (consume("!="))
+            node = new_binary(ND_NE, node, relational());
+        else
+            return node;
+    }
+
+}
+
+// relational = add ("<=" add | "<" add | ">=" add | ">" add)*
+static Node *relational(void) {
+    Node *node = add();
+
+    for(;;) {
+        if (consume("<"))
+            node = new_binary(ND_LT, node, add());
+        else if (consume("<="))
+            node = new_binary(ND_LE, node, add());
+        else if (consume(">"))
+            node = new_binary(ND_LT, add(), node);
+        else if (consume(">="))
+            node = new_binary(ND_LE, add(), node);
+        else
+            return node;
+    }
+}
+
+
+// add = mul ("+" mul | "-" mul)*
+static Node *add(void) {
     Node *node = mul();
 
     for (;;) {
