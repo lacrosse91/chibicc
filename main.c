@@ -116,7 +116,7 @@ Token *tokenize(void) {
             continue;
         }
 
-        if (*p == '+' || *p == '-') {
+        if (ispunct(*p)) {
             cur = new_token(TK_RESERVED, cur, p++);
             continue;
         }
@@ -134,6 +134,8 @@ Token *tokenize(void) {
 typedef enum {
   ND_ADD, // +
   ND_SUB, // -
+  ND_MUL, // *
+  ND_DIV, // /
   ND_NUM, // Integer
 } NodeKind;
 
@@ -182,9 +184,18 @@ static Node *expr(void) {
     }
 }
 
-// mul = num
+// mul = num ( "*" num | "/" num);
 static Node *mul(void) {
-    return new_num(expect_number());
+    Node *node = new_num(expect_number());
+
+    for (;;) {
+        if (consume('*'))
+            node = new_binary(ND_MUL, node, mul());
+        else if (consume('/'))
+            node = new_binary(ND_DIV, node, mul());
+        else
+            return node;
+    }
 }
 
 // ASTを解析してアセンブリを吐く関数
@@ -207,6 +218,13 @@ void gen(Node *node) {
         break;
     case ND_SUB:
         printf("  sub rax, rdi\n");
+        break;
+    case ND_MUL:
+        printf("  imul rax, rdi\n");
+        break;
+    case ND_DIV:
+        printf("  cqo\n");
+        printf("  idiv rdi\n");
         break;
     }
 
