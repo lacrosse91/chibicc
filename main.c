@@ -15,9 +15,9 @@ typedef struct Token Token;
 
 struct Token {
     TokenKind kind; // token
-    char *p; // token's character
+    char *str; // token's character
     Token *next; // next token
-    int val; // if TokenKind == TK_NUM, its value.
+    long val; // if TokenKind == TK_NUM, its value.
 };
 
 // current token
@@ -37,7 +37,7 @@ void error(char *fmt, ...) {
 Token *new_token(TokenKind kind, Token *cur, char *str) {
   Token *tok = calloc(1, sizeof(Token));
   tok->kind = kind;
-  tok->p = str;
+  tok->str = str;
   cur->next = tok;
   return tok;
 }
