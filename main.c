@@ -17,6 +17,7 @@ struct Token {
     TokenKind kind; // token
     char *str; // token's character
     Token *next; // next token
+    int len; // Token length
     long val; // if TokenKind == TK_NUM, its value.
 };
 
@@ -56,18 +57,19 @@ void forward_token() {
 }
 
 // 記号ならtrue,それ以外はfalseでtokenを一つ進める
-bool consume(char op) {
-  if (token->kind != TK_RESERVED || token->str[0] != op)
+bool consume(char *op) {
+  if (token->kind != TK_RESERVED || token->len != strlen(op)
+     || strncmp(token->str, op, token->len))
     return false;
   forward_token();
   return true;
 }
 
 // 記号ならトークンを一つ進める。それ以外はエラーを返す
-void expect(char op) {
-  if (token->kind != TK_RESERVED || token->str[0] != op) {
-      error_at(token->str, "expected %c", op);
-  }
+void expect(char *op) {
+  if (token->kind != TK_RESERVED || token->len != strlen(op)
+     || strncmp(token->str, op, token->len))
+      error_at(token->str, "expected %s", op);
   forward_token();
 }
 
@@ -86,10 +88,11 @@ bool is_eof(void) {
 }
 
 // Create a new token and add it as the next token of `cur`.
-Token *new_token(TokenKind kind, Token *cur, char *str) {
+Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
   Token *tok = calloc(1, sizeof(Token));
   tok->kind = kind;
   tok->str = str;
+  tok->len = len;
   cur->next = tok;
   return tok;
 }
@@ -111,18 +114,21 @@ Token *tokenize(void) {
         }
 
         if (isdigit(*p)) {
-            cur = new_token(TK_NUM, cur, p);
+            cur = new_token(TK_NUM, cur, p, 0);
+            char *q = p;
             cur->val = strtol(p, &p, 10);
+            cur->len = p -q;
             continue;
         }
 
+        // single-letter punctuator
         if (ispunct(*p)) {
-            cur = new_token(TK_RESERVED, cur, p++);
+            cur = new_token(TK_RESERVED, cur, p++, 1);
             continue;
         }
 
     }
-    cur = new_token(TK_EOF, cur, p);
+    cur = new_token(TK_EOF, cur, p, 0);
 
     return head.next;
 }
@@ -177,9 +183,9 @@ static Node *expr(void) {
     Node *node = mul();
 
     for (;;) {
-        if (consume('+'))
+        if (consume("+"))
             node = new_binary(ND_ADD, node, mul());
-        else if (consume('-'))
+        else if (consume("-"))
             node = new_binary(ND_SUB, node, mul());
         else
             return node;
@@ -191,9 +197,9 @@ static Node *mul(void) {
     Node *node = unary();
 
     for (;;) {
-        if (consume('*'))
+        if (consume("*"))
             node = new_binary(ND_MUL, node, unary());
-        else if (consume('/'))
+        else if (consume("/"))
             node = new_binary(ND_DIV, node, unary());
         else
             return node;
@@ -202,17 +208,17 @@ static Node *mul(void) {
 
 // unary = ("+" | "-")? primary;
 static Node *unary(void) {
-    if (consume('+'))
+    if (consume("+"))
         return primary();
-    else if (consume('-'))
+    else if (consume("-"))
         return new_binary(ND_SUB, new_num(0), primary());
     return primary();
 }
 // primary = "(" expr ")" | num
 static Node *primary(void) {
-    if (consume('(')) {
+    if (consume("(")) {
         Node *node = expr();
-        expect(')');
+        expect(")");
         return node;
     }
     return new_num(expect_number());
