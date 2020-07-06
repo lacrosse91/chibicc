@@ -13,7 +13,7 @@ typedef enum {
 
 typedef struct Token Token;
 
-struct {
+struct Token {
     TokenKind kind; // token
     char *p; // token's character
     Token *next; // next token
@@ -31,6 +31,15 @@ void error(char *fmt, ...) {
   vfprintf(stderr, fmt, ap);
   fprintf(stderr, "\n");
   exit(1);
+}
+
+// // Create a new token and add it as the next token of `cur`.
+Token *new_token(TokenKind kind, Token *cur, char *str) {
+  Token *tok = calloc(1, sizeof(Token));
+  tok->kind = kind;
+  tok->p = str;
+  cur->next = tok;
+  return tok;
 }
 
 void codegen(char *p) {
