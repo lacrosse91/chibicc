@@ -99,6 +99,7 @@ struct Node {
 
   // function call
   char *funcname;
+  Node *args;
 };
 
 typedef struct Function Function;
