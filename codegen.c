@@ -12,7 +12,7 @@ static void gen_addr(Node *node) {
     printf("  push rax\n");
     return;
   }
-  error("not an lvalue");
+  error_tok(node->tok, "not an lvalue");
 }
 
 static void load(void) {
