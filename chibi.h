@@ -66,6 +66,7 @@ typedef enum {
   ND_RETURN, // return
   ND_IF, // "if"
   ND_WHILE, // "while"
+  ND_FOR,   // "for"
   ND_EXPR_STMT, // Expression statement
   ND_VAR,    // Variable
   ND_NUM, // Integer
@@ -86,6 +87,10 @@ struct Node {
   Node *cond;
   Node *then;
   Node *els;
+
+  // "for" statement
+  Node *init;
+  Node *inc;
 };
 
 typedef struct Function Function;

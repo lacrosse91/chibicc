@@ -84,6 +84,7 @@ static Node *read_expr_stmt(void) {
 }
 
 //stmt = "return" expr ";"
+//       | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 //       | "while" "(" expr ")" stmt
 //       | if "(" expr ")" stmt ("else" stmt)?
 //       | expr ";"
@@ -92,6 +93,25 @@ static Node *stmt(void) {
         Node *node = expr();
         expect(";");
         node = new_unary(ND_RETURN, node);
+        return node;
+    }
+
+    if (consume("for")) {
+        Node *node = new_node(ND_FOR);
+        expect("(");
+        if (!consume(";")) {
+            node->init = read_expr_stmt();
+            expect(";");
+        }
+        if (!consume(";")) {
+            node->cond = expr();
+            expect(";");
+        }
+        if (!consume(")")) {
+            node->inc = read_expr_stmt();
+            expect(")");
+        }
+        node->then = stmt();
         return node;
     }
 
