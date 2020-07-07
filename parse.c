@@ -84,6 +84,7 @@ static Node *read_expr_stmt(void) {
 }
 
 //stmt = "return" expr ";"
+//       | "while" "(" expr ")" stmt
 //       | if "(" expr ")" stmt ("else" stmt)?
 //       | expr ";"
 static Node *stmt(void) {
@@ -91,6 +92,15 @@ static Node *stmt(void) {
         Node *node = expr();
         expect(";");
         node = new_unary(ND_RETURN, node);
+        return node;
+    }
+
+    if (consume("while")) {
+        Node *node = new_node(ND_WHILE);
+        expect("(");
+        node->cond = expr();
+        expect(")");
+        node->then = stmt();
         return node;
     }
 
