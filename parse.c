@@ -87,6 +87,7 @@ static Node *read_expr_stmt(void) {
 //       | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 //       | "while" "(" expr ")" stmt
 //       | if "(" expr ")" stmt ("else" stmt)?
+//       | "{" stmt* "}"
 //       | expr ";"
 static Node *stmt(void) {
     if (consume("return")) {
@@ -132,6 +133,19 @@ static Node *stmt(void) {
         node->then = stmt();
         if (consume("else"))
             node->els = stmt();
+        return node;
+    }
+
+    if (consume("{")) {
+        Node head = {};
+        Node *cur = &head;
+
+        while(!consume("}")) {
+            cur->next = stmt();
+            cur = cur->next;
+        }
+        Node *node = new_node(ND_BLOCK);
+        node->body = head.next;
         return node;
     }
 
