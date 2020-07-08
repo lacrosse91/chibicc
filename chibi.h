@@ -1,4 +1,5 @@
 #define _GNU_SOURCE
+#include <assert.h>
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -53,7 +54,7 @@ extern Token *token;
 typedef struct Var Var;
 struct Var {
     char *name; // Varible name
-    Type *ty;
+    Type *ty; // type
     int offset; // Offset from RBP
 };
 
@@ -137,16 +138,19 @@ Function *program(void);
 //
 // typing.c
 //
-typedef enum { TY_INT, TY_PTR } TypeKind;
+typedef enum { TY_INT, TY_PTR, TY_ARRAY } TypeKind;
 
 struct Type {
     TypeKind kind;
+    int size;
     Type *base;
+    int array_len;
 };
 
 extern Type *int_type;
 bool is_integer(Type *ty);
 Type *pointer_to(Type *base);
+Type *array_of(Type *base, int size);
 void add_type(Node *node);
 
 //

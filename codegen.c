@@ -18,7 +18,14 @@ static void gen_addr(Node *node) {
     gen(node->lhs);
     return;
   }
+
   error_tok(node->tok, "not an lvalue");
+}
+
+static void gen_lval(Node *node) {
+  if (node->ty->kind == TY_ARRAY)
+    error_tok(node->tok, "not an lvalue");
+  gen_addr(node);
 }
 
 static void load(void) {
@@ -34,6 +41,7 @@ static void store(void) {
   printf("  push rdi\n");
 }
 
+// Generate code for a given node.
 static void gen(Node *node) {
   switch (node->kind) {
   case ND_NULL:
@@ -41,25 +49,61 @@ static void gen(Node *node) {
   case ND_NUM:
     printf("  push %ld\n", node->val);
     return;
+  case ND_EXPR_STMT:
+    gen(node->lhs);
+    printf("  add rsp, 8\n");
+    return;
   case ND_VAR:
     gen_addr(node);
-    load();
+    if (node->ty->kind != TY_ARRAY)
+      load();
     return;
   case ND_ASSIGN:
-    gen_addr(node->lhs);
+    gen_lval(node->lhs);
     gen(node->rhs);
     store();
     return;
+  case ND_ADDR:
+    gen_addr(node->lhs);
+    return;
+  case ND_DEREF:
+    gen(node->lhs);
+    if (node->ty->kind != TY_ARRAY)
+      load();
+    return;
+  case ND_IF: {
+    int seq = labelseq++;
+    if (node->els) {
+      gen(node->cond);
+      printf("  pop rax\n");
+      printf("  cmp rax, 0\n");
+      printf("  je  .L.else.%d\n", seq);
+      gen(node->then);
+      printf("  jmp .L.end.%d\n", seq);
+      printf(".L.else.%d:\n", seq);
+      gen(node->els);
+      printf(".L.end.%d:\n", seq);
+    } else {
+      gen(node->cond);
+      printf("  pop rax\n");
+      printf("  cmp rax, 0\n");
+      printf("  je  .L.end.%d\n", seq);
+      gen(node->then);
+      printf(".L.end.%d:\n", seq);
+    }
+    return;
+  }
   case ND_WHILE: {
     int seq = labelseq++;
     printf(".L.begin.%d:\n", seq);
     gen(node->cond);
     printf("  pop rax\n");
     printf("  cmp rax, 0\n");
-    printf("  je .L.end.%d\n", seq);
+    printf("  je  .L.end.%d\n", seq);
     gen(node->then);
     printf("  jmp .L.begin.%d\n", seq);
     printf(".L.end.%d:\n", seq);
+    return;
   }
   case ND_FOR: {
     int seq = labelseq++;
@@ -77,35 +121,6 @@ static void gen(Node *node) {
       gen(node->inc);
     printf("  jmp .L.begin.%d\n", seq);
     printf(".L.end.%d:\n", seq);
-    return;
-  }
-  case ND_ADDR:
-    gen_addr(node->lhs);
-    return;
-  case ND_DEREF:
-    gen(node->lhs);
-    load();
-    return;
-  case ND_IF: {
-    int seq = labelseq++;
-    if (node->els) {
-      gen(node->cond);
-      printf("  pop rax\n");
-      printf("  cmp rax, 0\n");
-      printf("  je .L.else.%d\n", seq);
-      gen(node->then);
-      printf("  jmp .L.end.%d\n", seq);
-      printf(".L.else.%d:\n", seq);
-      gen(node->els);
-      printf(".L.end.%d:\n", seq);
-    } else {
-      gen(node->cond);
-      printf("  pop rax\n");
-      printf("  cmp rax, 0\n");
-      printf("  je .L.end.%d\n", seq);
-      gen(node->then);
-      printf(".L.end.%d:\n", seq);
-    }
     return;
   }
   case ND_BLOCK:
@@ -146,11 +161,6 @@ static void gen(Node *node) {
     printf("  pop rax\n");
     printf("  jmp .L.return.%s\n", funcname);
     return;
-  case ND_EXPR_STMT:
-    gen(node->lhs);
-    // スタックに積んであるraxの値を無効にする
-    printf("  add rsp, 8\n");
-    return;
   }
 
   gen(node->lhs);
@@ -164,20 +174,20 @@ static void gen(Node *node) {
     printf("  add rax, rdi\n");
     break;
   case ND_PTR_ADD:
-    printf("  imul rdi, 8\n");
+    printf("  imul rdi, %d\n", node->ty->base->size);
     printf("  add rax, rdi\n");
     break;
   case ND_SUB:
     printf("  sub rax, rdi\n");
     break;
   case ND_PTR_SUB:
-    printf("  imul rdi, 8\n");
+    printf("  imul rdi, %d\n", node->ty->base->size);
     printf("  sub rax, rdi\n");
     break;
   case ND_PTR_DIFF:
     printf("  sub rax, rdi\n");
     printf("  cqo\n");
-    printf("  mov rdi, 8\n");
+    printf("  mov rdi, %d\n", node->lhs->ty->base->size);
     printf("  idiv rdi\n");
     break;
   case ND_MUL:
@@ -215,11 +225,9 @@ static void gen(Node *node) {
 void codegen(Function *prog) {
   printf(".intel_syntax noprefix\n");
 
-
   for (Function *fn = prog; fn; fn = fn->next) {
     printf(".global %s\n", fn->name);
     printf("%s:\n", fn->name);
-
     funcname = fn->name;
 
     // Prologue
@@ -228,7 +236,6 @@ void codegen(Function *prog) {
     printf("  sub rsp, %d\n", fn->stack_size);
 
     // Push arguments to the stack
-
     int i = 0;
     for (VarList *vl = fn->params; vl; vl = vl->next) {
       Var *var = vl->var;
@@ -245,5 +252,4 @@ void codegen(Function *prog) {
     printf("  pop rbp\n");
     printf("  ret\n");
   }
-
 }
