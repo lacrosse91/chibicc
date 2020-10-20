@@ -13,7 +13,7 @@ int main(int argc, char **argv) {
   // Assign offsets to local variables.
   for (Function *fn = prog; fn; fn = fn->next) {
       int offset = 0;
-      for(VarList *vl = fn->locals; vl; vl = vl->next) {
+      for (VarList *vl = fn->locals; vl; vl = vl->next) {
           Var *var = vl->var;
           offset += var->ty->size;
           var->offset = offset;
